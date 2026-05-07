@@ -397,8 +397,25 @@ function showPixelationOverlay(preview28) {
 async function tryInitOnnx() {
   if (typeof ort === 'undefined') return false;
   try {
-    // Try to load ONNX model from static folder (relative to this HTML file)
-    const modelUrl = 'mnist_cnn.onnx';
+    // Resolve model URL relative to this script file, not the HTML document.
+    // This works whether the page is /index.html (redirect) or /static/index.html.
+    let modelUrl = 'mnist_cnn.onnx';
+    try {
+      const current = document.currentScript || (function() {
+        const scripts = document.getElementsByTagName('script');
+        for (let i = scripts.length - 1; i >= 0; i--) {
+          const s = scripts[i];
+          if (s.src && /\bstatic\/script\.js($|\?)/.test(s.src)) return s;
+        }
+        return scripts[scripts.length - 1];
+      })();
+      const scriptUrl = new URL(current?.src || 'static/script.js', window.location.href);
+      const baseDir = scriptUrl.href.slice(0, scriptUrl.href.lastIndexOf('/') + 1);
+      modelUrl = new URL('mnist_cnn.onnx', baseDir).href;
+    } catch (_) {
+      // Fallback keeps relative path which works when HTML is in static/
+      modelUrl = 'mnist_cnn.onnx';
+    }
 
     // Ensure ONNX Runtime Web can fetch its WASM from a reliable location on GitHub Pages
     ort.env.wasm.wasmPaths = 'https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/';
@@ -416,7 +433,16 @@ async function tryInitOnnx() {
     return true;
   } catch (e) {
     console.warn('ONNX init failed:', e);
-    statusEl.textContent = 'ONNX model/wasm not available. Ensure static/mnist_cnn.onnx exists in your Pages build and that jsDelivr is reachable.';
+    // Provide the resolved URL (if any) to aid debugging on GitHub Pages
+    let hint = '';
+    try {
+      const scripts = document.getElementsByTagName('script');
+      const s = scripts[scripts.length - 1];
+      const su = new URL(s?.src || 'static/script.js', window.location.href);
+      const bu = new URL('mnist_cnn.onnx', su.href.substring(0, su.href.lastIndexOf('/') + 1)).href;
+      hint = ` (tried: ${bu})`;
+    } catch (_) {}
+    statusEl.textContent = 'ONNX model/wasm not available. Ensure static/mnist_cnn.onnx exists and CDN is reachable.' + hint;
     useServerFallback = false; // no server on GitHub Pages
     if (predictBtn) {
       predictBtn.disabled = true;
