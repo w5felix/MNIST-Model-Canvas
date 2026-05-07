@@ -9,6 +9,8 @@ const clearBtn = document.getElementById('clear');
 const predictionEl = document.getElementById('prediction');
 const probsEl = document.getElementById('probs');
 const statusEl = document.getElementById('status');
+const panel = document.getElementById('panel');
+const panelToggle = document.getElementById('panelToggle');
 
 let drawing = false;
 let last = null;
@@ -88,6 +90,53 @@ function resizeAll() {
 }
 
 window.addEventListener('resize', resizeAll);
+
+// --- Collapsible prediction panel logic ---
+const PANEL_BREAKPOINT = 600; // px
+let userCollapsePref = null; // null => not set by user yet
+
+function setPanelCollapsed(collapsed, { viaUser = false } = {}) {
+  if (!panel) return;
+  if (collapsed) {
+    panel.classList.add('collapsed');
+    if (panelToggle) {
+      panelToggle.setAttribute('aria-expanded', 'false');
+      panelToggle.title = 'Expand';
+      panelToggle.textContent = '▸';
+      panelToggle.setAttribute('aria-label', 'Expand prediction details');
+    }
+  } else {
+    panel.classList.remove('collapsed');
+    if (panelToggle) {
+      panelToggle.setAttribute('aria-expanded', 'true');
+      panelToggle.title = 'Collapse';
+      panelToggle.textContent = '▾';
+      panelToggle.setAttribute('aria-label', 'Collapse prediction details');
+    }
+  }
+  if (viaUser) userCollapsePref = collapsed;
+}
+
+function defaultCollapsedForViewport() {
+  return window.matchMedia(`(max-width: ${PANEL_BREAKPOINT}px)`).matches;
+}
+
+function applyPanelStateForViewport() {
+  if (userCollapsePref === null) {
+    setPanelCollapsed(defaultCollapsedForViewport());
+  }
+}
+
+if (panelToggle) {
+  panelToggle.addEventListener('click', () => {
+    const isCollapsed = panel.classList.contains('collapsed');
+    setPanelCollapsed(!isCollapsed, { viaUser: true });
+  });
+}
+
+window.addEventListener('resize', () => {
+  applyPanelStateForViewport();
+});
 
 function getPos(e) {
   const rect = canvas.getBoundingClientRect();
@@ -425,5 +474,6 @@ predictBtn.addEventListener('click', async () => {
 
 (async function main() {
   resizeAll();
+  applyPanelStateForViewport();
   await tryInitOnnx();
 })();
