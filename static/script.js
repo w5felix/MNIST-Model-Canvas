@@ -411,14 +411,14 @@ async function tryInitOnnx() {
       })();
       const scriptUrl = new URL(current?.src || 'static/script.js', window.location.href);
       const baseDir = scriptUrl.href.slice(0, scriptUrl.href.lastIndexOf('/') + 1);
-      modelUrl = new URL('mnist_cnn.onnx', baseDir).href;
+      modelUrl = new URL('mnist_cnn.onnx?v=20240507', baseDir).href;
     } catch (_) {
       // Fallback keeps relative path which works when HTML is in static/
       modelUrl = 'mnist_cnn.onnx';
     }
 
     // Ensure ONNX Runtime Web can fetch its WASM from a reliable location on GitHub Pages
-    ort.env.wasm.wasmPaths = 'https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/';
+    ort.env.wasm.wasmPaths = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.17.3/dist/';
 
     // GitHub Pages is not cross-origin isolated; avoid features that require COOP/COEP
     ort.env.wasm.numThreads = 1;      // disable multi-threading
