@@ -397,33 +397,14 @@ function showPixelationOverlay(preview28) {
 async function tryInitOnnx() {
   if (typeof ort === 'undefined') return false;
   try {
-    // Resolve model URL relative to this script file, not the HTML document.
-    // This works whether the page is /index.html (redirect) or /static/index.html.
-    let modelUrl = 'mnist_cnn.onnx';
-    try {
-      const current = document.currentScript || (function() {
-        const scripts = document.getElementsByTagName('script');
-        for (let i = scripts.length - 1; i >= 0; i--) {
-          const s = scripts[i];
-          if (s.src && /\bstatic\/script\.js($|\?)/.test(s.src)) return s;
-        }
-        return scripts[scripts.length - 1];
-      })();
-      const scriptUrl = new URL(current?.src || 'static/script.js', window.location.href);
-      const baseDir = scriptUrl.href.slice(0, scriptUrl.href.lastIndexOf('/') + 1);
-      modelUrl = new URL('mnist_cnn.onnx?v=20240507', baseDir).href;
-    } catch (_) {
-      // Fallback keeps relative path which works when HTML is in static/
-      modelUrl = 'mnist_cnn.onnx';
-    }
+    // Try to load ONNX model from static folder
+    const modelUrl = '/static/mnist_cnn.onnx';
+    // Quick existence check
+    const head = await fetch(modelUrl, { method: 'HEAD' });
+    if (!head.ok) throw new Error('ONNX model not found');
 
-    // Ensure ONNX Runtime Web can fetch its WASM from a reliable location on GitHub Pages
-    ort.env.wasm.wasmPaths = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.17.3/dist/';
-
-    // GitHub Pages is not cross-origin isolated; avoid features that require COOP/COEP
-    ort.env.wasm.numThreads = 1;      // disable multi-threading
-    ort.env.wasm.simd = false;        // disable SIMD to maximize compatibility
-    ort.env.wasm.proxy = false;       // run on main thread (no worker proxy)
+    ort.env.wasm.numThreads = 1; // MNIST is tiny
+    ort.env.wasm.simd = true;
 
     ortSession = await ort.InferenceSession.create(modelUrl, {
       executionProviders: ['wasm']
@@ -432,23 +413,9 @@ async function tryInitOnnx() {
     statusEl.textContent = 'ONNX Runtime (WebAssembly) ready';
     return true;
   } catch (e) {
-    console.warn('ONNX init failed:', e);
-    // Provide the resolved URL (if any) to aid debugging on GitHub Pages
-    let hint = '';
-    try {
-      const scripts = document.getElementsByTagName('script');
-      const s = scripts[scripts.length - 1];
-      const su = new URL(s?.src || 'static/script.js', window.location.href);
-      const bu = new URL('mnist_cnn.onnx', su.href.substring(0, su.href.lastIndexOf('/') + 1)).href;
-      hint = ` (tried: ${bu})`;
-    } catch (_) {}
-    statusEl.textContent = 'ONNX model/wasm not available. Ensure static/mnist_cnn.onnx exists and CDN is reachable.' + hint;
-    useServerFallback = false; // no server on GitHub Pages
-    if (predictBtn) {
-      predictBtn.disabled = true;
-      predictBtn.textContent = 'Predict (model missing)';
-      predictBtn.title = 'Add static/mnist_cnn.onnx to enable in-browser inference.';
-    }
+    console.warn('ONNX init failed, will use server fallback:', e);
+    statusEl.textContent = 'Using server for inference (start Flask)';
+    useServerFallback = true;
     return false;
   }
 }
