@@ -397,13 +397,16 @@ function showPixelationOverlay(preview28) {
 async function tryInitOnnx() {
   if (typeof ort === 'undefined') return false;
   try {
-    // Try to load ONNX model from static folder
+    // Try to load ONNX model from static folder (relative to this HTML file)
     const modelUrl = 'mnist_cnn.onnx';
 
-    // Use CDN-hosted wasm binaries instead of expecting them next to the page on GitHub Pages
+    // Ensure ONNX Runtime Web can fetch its WASM from a reliable location on GitHub Pages
     ort.env.wasm.wasmPaths = 'https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/';
-    ort.env.wasm.numThreads = 1; // MNIST is tiny
-    ort.env.wasm.simd = true;
+
+    // GitHub Pages is not cross-origin isolated; avoid features that require COOP/COEP
+    ort.env.wasm.numThreads = 1;      // disable multi-threading
+    ort.env.wasm.simd = false;        // disable SIMD to maximize compatibility
+    ort.env.wasm.proxy = false;       // run on main thread (no worker proxy)
 
     ortSession = await ort.InferenceSession.create(modelUrl, {
       executionProviders: ['wasm']
@@ -413,7 +416,7 @@ async function tryInitOnnx() {
     return true;
   } catch (e) {
     console.warn('ONNX init failed:', e);
-    statusEl.textContent = 'ONNX model/wasm not available. Ensure static/mnist_cnn.onnx exists and CDN is reachable.';
+    statusEl.textContent = 'ONNX model/wasm not available. Ensure static/mnist_cnn.onnx exists in your Pages build and that jsDelivr is reachable.';
     useServerFallback = false; // no server on GitHub Pages
     if (predictBtn) {
       predictBtn.disabled = true;
