@@ -1,0 +1,24 @@
+# Render Blueprint for deploying DigitsVis
+# Docs: https://render.com/docs/blueprint-spec
+
+services:
+  - type: web
+    name: digitsvis
+    env: python
+    region: oregon
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn -w 2 -k gthread -b 0.0.0.0:$PORT app:app
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.8
+      - key: FLASK_DEBUG
+        value: "0"
+      - key: STATIC_FOLDER
+        value: static
+      - key: MODEL_PATH
+        # Not required when using in-browser ONNX (static/mnist_cnn.onnx).
+        # Leave default unless you plan to use server-side /predict.
+        value: mnist_cnn.pt

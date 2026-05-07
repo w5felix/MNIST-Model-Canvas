@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Draw a Digit - MNIST Demo</title>
+  <style>
+    :root {
+      --bg: #0b0b0f;
+      --panel: #14151a;
+      --accent: #6ea8fe;
+      --text: #e8e8f0;
+      --muted: #a0a3ad;
+      --border: #20222a;
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body { margin: 0; background: var(--bg); color: var(--text); font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; }
+    #stage {
+      position: fixed; inset: 0; overflow: hidden;
+      display: grid; grid-template-rows: auto 1fr; gap: 12px;
+    }
+    header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 12px 16px; border-bottom: 1px solid var(--border);
+      background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0));
+      backdrop-filter: blur(6px);
+    }
+    header .title { font-weight: 600; letter-spacing: 0.2px; }
+    #canvasWrap { position: relative; height: 100%; }
+    /* Centered square draw area with stacked canvases */
+    #drawArea { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 80vmin; height: 80vmin; max-width: 100%; max-height: 100%; }
+    #drawArea canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+    #canvas { background: #000; touch-action: none; cursor: crosshair; z-index: 1; }
+    #grid { pointer-events: none; z-index: 2; }
+    #fx { pointer-events: none; z-index: 3; opacity: 0; transition: opacity 250ms ease; }
+    .controls {
+      position: fixed; left: 16px; bottom: 16px; display: flex; gap: 8px; z-index: 10;
+      background: rgba(20,21,26,0.66); border: 1px solid var(--border); padding: 8px; border-radius: 10px; backdrop-filter: blur(8px);
+    }
+    button { background: var(--accent); color: #0b1020; border: none; padding: 10px 14px; border-radius: 8px; cursor: pointer; font-weight: 600; }
+    button.secondary { background: #2a2f3a; color: var(--text); }
+    #panel {
+      position: fixed; right: 16px; bottom: 16px; width: min(360px, 90vw);
+      background: rgba(20,21,26,0.66); border: 1px solid var(--border); border-radius: 12px; padding: 12px; backdrop-filter: blur(8px);
+    }
+    .pred { font-size: 56px; font-weight: 800; }
+    .grid { display: grid; grid-template-columns: 1fr; gap: 6px; }
+    .label { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; }
+    .probs { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; font-size: 12px; white-space: pre; color: #bcd; }
+    .status { color: var(--muted); font-size: 12px; }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/ort.min.js"></script>
+</head>
+<body>
+  <div id="stage">
+    <header>
+      <div class="title">MNIST Digit Classifier</div>
+      <div class="status" id="status">Loading…</div>
+    </header>
+    <div id="canvasWrap">
+      <div id="drawArea">
+        <canvas id="canvas"></canvas>
+        <canvas id="grid"></canvas>
+        <canvas id="fx"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button id="predict">Predict</button>
+    <button id="clear" class="secondary">Clear</button>
+  </div>
+
+  <div id="panel">
+    <div class="grid">
+      <div class="label">Prediction</div>
+      <div id="prediction" class="pred">–</div>
+      <div class="label">Probabilities</div>
+      <div id="probs" class="probs">[ ]</div>
+    </div>
+  </div>
+
+  <script src="/static/script.js"></script>
+</body>
+</html>

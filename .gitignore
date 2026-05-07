@@ -1,0 +1,24 @@
+.venv/
+venv/
+__pycache__/
+*.pyc
+.DS_Store
+.idea/
+
+# ML artifacts
+*.pt
+*.pth
+*.h5
+*.pkl
+
+*.npy
+*.npz
+data/
+datasets/
+models/
+checkpoints/
+
+
+# Keep these specific artifacts in version control for deployment
+!static/mnist_cnn.onnx
+!mnist_cnn.pt
