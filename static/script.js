@@ -398,11 +398,10 @@ async function tryInitOnnx() {
   if (typeof ort === 'undefined') return false;
   try {
     // Try to load ONNX model from static folder
-    const modelUrl = '/static/mnist_cnn.onnx';
-    // Quick existence check
-    const head = await fetch(modelUrl, { method: 'HEAD' });
-    if (!head.ok) throw new Error('ONNX model not found');
+    const modelUrl = 'mnist_cnn.onnx';
 
+    // Use CDN-hosted wasm binaries instead of expecting them next to the page on GitHub Pages
+    ort.env.wasm.wasmPaths = 'https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/';
     ort.env.wasm.numThreads = 1; // MNIST is tiny
     ort.env.wasm.simd = true;
 
@@ -413,9 +412,14 @@ async function tryInitOnnx() {
     statusEl.textContent = 'ONNX Runtime (WebAssembly) ready';
     return true;
   } catch (e) {
-    console.warn('ONNX init failed, will use server fallback:', e);
-    statusEl.textContent = 'Using server for inference (start Flask)';
-    useServerFallback = true;
+    console.warn('ONNX init failed:', e);
+    statusEl.textContent = 'ONNX model/wasm not available. Ensure static/mnist_cnn.onnx exists and CDN is reachable.';
+    useServerFallback = false; // no server on GitHub Pages
+    if (predictBtn) {
+      predictBtn.disabled = true;
+      predictBtn.textContent = 'Predict (model missing)';
+      predictBtn.title = 'Add static/mnist_cnn.onnx to enable in-browser inference.';
+    }
     return false;
   }
 }
